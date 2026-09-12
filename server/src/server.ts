@@ -38,7 +38,7 @@ app.post('/api/camera/save-snapshot', async (req: Request, res: Response) => {
     const base64Data = image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
 
     // Penamaan file unik berdasarkan timestamp
-    const fileName = `capture_${Date.now()}.jpg`;
+    const fileName = `capture_${Date.now()}.jpeg`;
     const fullPath = path.join(TARGET_DIR, fileName);
 
     // Simpan file ke direktori Pictures
