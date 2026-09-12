@@ -3,9 +3,13 @@ import cors from 'cors';
 import path from 'node:path';
 import { CameraService } from './services/camera.service.js';
 import { PrinterService } from './services/printer.service.js';
+import fs from 'node:fs';
 
 const app = express();
 const PORT = 5000;
+
+// Path Folder Tujuan
+const SAVE_DIR = `C:\\Users\\Dennis\\Pictures\\PHOTOBOOTH CAPTURE`;
 
 const cameraService = new CameraService();
 const printerService = new PrinterService();
@@ -20,21 +24,39 @@ app.use(
 // Endpoint saat React menekan tombol Shutter / Countdown Selesai
 app.post('/api/camera/save-snapshot', async (req: Request, res: Response) => {
   try {
-    const { image } = req.body;
+    const { imageDataUrl } = req.body;
+    if (!imageDataUrl) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'imageDataUrl wajib diisi.' });
+    }
 
-    // Simpan snapshot via CameraService
-    const imageUrl = await cameraService.saveSnapshot(image);
+    // Pastikan folder tujuan ada
+    if (!fs.existsSync(SAVE_DIR)) {
+      fs.mkdirSync(SAVE_DIR, { recursive: true });
+    }
 
+    // Convert Base64 ke Buffer
+    const base64Data = imageDataUrl.replace(
+      /^data:image\/(png|jpeg|jpg);base64,/,
+      '',
+    );
+    const fileName = `capture_${Date.now()}.png`;
+    const filePath = path.join(SAVE_DIR, fileName);
+
+    // Simpan file ke disk
+    await fs.promises.writeFile(filePath, Buffer.from(base64Data, 'base64'));
+
+    console.log(`Foto berhasil disimpan di: ${filePath}`);
     return res.json({
       success: true,
-      imageUrl,
+      message: 'Foto berhasil disimpan!',
+      filePath,
     });
   } catch (error) {
     const err = error as Error;
-    return res.status(500).json({
-      success: false,
-      message: err.message || 'Gagal menyimpan snapshot gambar.',
-    });
+    console.error('Gagal menyimpan foto:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
